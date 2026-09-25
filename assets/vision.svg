@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" role="img" aria-labelledby="visionTitle">
+  <title id="visionTitle">A global network of researchers connected around a shared point</title>
+  <rect width="480" height="360" fill="#F6F4EE"/>
+  <!-- globe -->
+  <circle cx="240" cy="180" r="120" fill="none" stroke="#DAD5C6" stroke-width="1.5"/>
+  <ellipse cx="240" cy="180" rx="120" ry="46" fill="none" stroke="#DAD5C6" stroke-width="1.5"/>
+  <ellipse cx="240" cy="180" rx="120" ry="46" fill="none" stroke="#DAD5C6" stroke-width="1.5" transform="rotate(60 240 180)"/>
+  <ellipse cx="240" cy="180" rx="120" ry="46" fill="none" stroke="#DAD5C6" stroke-width="1.5" transform="rotate(120 240 180)"/>
+
+  <!-- connecting nodes / research hubs -->
+  <g stroke="#1F5C55" stroke-width="1.6" fill="none" opacity="0.9">
+    <path d="M120 140 Q240 60 360 130"/>
+    <path d="M110 220 Q240 300 370 210"/>
+    <path d="M150 90 Q240 180 150 270"/>
+    <path d="M330 90 Q240 180 330 270"/>
+  </g>
+
+  <g>
+    <circle cx="120" cy="140" r="7" fill="#B8862E"/>
+    <circle cx="360" cy="130" r="7" fill="#1C2333"/>
+    <circle cx="110" cy="220" r="7" fill="#1C2333"/>
+    <circle cx="370" cy="210" r="7" fill="#1F5C55"/>
+    <circle cx="150" cy="90" r="6" fill="#1F5C55"/>
+    <circle cx="150" cy="270" r="6" fill="#B8862E"/>
+    <circle cx="330" cy="90" r="6" fill="#1C2333"/>
+    <circle cx="330" cy="270" r="6" fill="#1C2333"/>
+    <circle cx="240" cy="180" r="9" fill="#1C2333"/>
+  </g>
+</svg>

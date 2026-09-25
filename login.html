@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login · ISCEST</title>
+<meta name="description" content="Log in to your ISCEST member account.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink: '#1C2333',
+          inksoft: '#5C6478',
+          paper: '#F6F4EE',
+          line: '#DAD5C6',
+          gold: '#B8862E',
+          teal: '#1F5C55',
+        },
+        fontFamily: {
+          serif: ['"Source Serif 4"', 'Georgia', 'serif'],
+          sans: ['"IBM Plex Sans"', 'ui-sans-serif', 'sans-serif'],
+        },
+      },
+    },
+  };
+</script>
+<link rel="stylesheet" href="css/base.css">
+</head>
+<body class="bg-paper text-ink font-sans antialiased">
+<a class="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[999] focus:bg-ink focus:text-white focus:px-4 focus:py-2 focus:rounded" href="#main">Skip to content</a>
+
+<header class="bg-white border-b border-line sticky top-0 z-40">
+  <div class="max-w-6xl mx-auto px-6 flex items-center gap-6 py-4">
+    <button class="md:hidden w-9 h-9 border border-line rounded flex flex-col justify-center items-center gap-1 shrink-0" id="navToggle" aria-label="Open menu" aria-expanded="false">
+      <span class="block w-4 h-0.5 bg-ink"></span>
+      <span class="block w-4 h-0.5 bg-ink"></span>
+      <span class="block w-4 h-0.5 bg-ink"></span>
+    </button>
+    <a href="index.html" class="w-44 sm:w-52 shrink-0" aria-label="ISCEST home">
+      <img src="assets/logo.svg" alt="ISCEST — International Society for Computer Engineering, Science and Technology" class="w-full h-auto">
+    </a>
+    <form class="ml-auto hidden sm:flex items-center border border-line rounded overflow-hidden" id="siteSearch" role="search">
+      <label for="searchInput" class="sr-only">Search ISCEST</label>
+      <input type="search" id="searchInput" placeholder="Search the site…" class="px-3 py-2 text-sm w-44 lg:w-56 outline-none text-ink placeholder:text-inksoft">
+      <button type="submit" aria-label="Search" class="bg-ink text-white px-3 h-full flex items-center hover:bg-teal transition-colors">
+        <svg viewBox="0 0 24 24" width="15" height="15"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </form>
+  </div>
+
+  <nav class="hidden md:block border-t border-line" id="mainNav" aria-label="Primary">
+    <div class="max-w-6xl mx-auto px-6">
+      <ul class="flex flex-wrap items-stretch">
+        <li><a href="index.html" class="block px-4 py-3 text-sm font-medium text-inksoft hover:text-teal transition-colors">Home</a></li>
+        <li><a href="about.html" class="block px-4 py-3 text-sm font-medium text-inksoft hover:text-teal transition-colors">About ISCEST</a></li>
+        <li><a href="news.html" class="block px-4 py-3 text-sm font-medium text-inksoft hover:text-teal transition-colors">News</a></li>
+        <li><a href="events.html" class="block px-4 py-3 text-sm font-medium text-inksoft hover:text-teal transition-colors">Events</a></li>
+        <li><a href="conference.html" class="block px-4 py-3 text-sm font-medium text-inksoft hover:text-teal transition-colors">Conference</a></li>
+        <li><a href="journals.html" class="block px-4 py-3 text-sm font-medium text-inksoft hover:text-teal transition-colors">Journals</a></li>
+        <li class="relative">
+          <button class="flex items-center gap-1 px-4 py-3 text-sm font-semibold text-ink border-b-2 border-gold" id="memberToggle" aria-expanded="false">
+            Membership
+            <svg viewBox="0 0 24 24" width="11" height="11"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <ul class="hidden absolute top-full left-0 min-w-[210px] bg-white border border-line rounded shadow-lg p-1.5 z-50" id="memberDropdown">
+            <li><a href="membership.html" class="block px-3 py-2 text-sm rounded hover:bg-paper hover:text-teal transition-colors">Membership overview</a></li>
+            <li><a href="registration.html" class="block px-3 py-2 text-sm rounded hover:bg-paper hover:text-teal transition-colors">Registration Form</a></li>
+            <li><a href="login.html" class="block px-3 py-2 text-sm rounded hover:bg-paper hover:text-teal transition-colors">Login / Account</a></li>
+          </ul>
+        </li>
+        <li><a href="contact.html" class="block px-4 py-3 text-sm font-medium text-inksoft hover:text-teal transition-colors">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+</header>
+<main id="main">
+
+<section class="border-b border-line py-12 md:py-14">
+  <div class="max-w-6xl mx-auto px-6">
+    <p class="text-sm text-inksoft mb-4"><a href="index.html" class="hover:text-teal">Home</a> / <a href="membership.html" class="hover:text-teal">Membership</a> / Login</p>
+    <p class="text-gold font-semibold text-sm mb-2.5">Membership</p>
+    <h1 class="text-3xl md:text-4xl max-w-[22ch]">Log in to your account</h1>
+    <p class="mt-3.5 max-w-[60ch] text-inksoft text-lg">Access your member profile, journal downloads, and conference registrations.</p>
+    
+  </div>
+</section>
+
+<section class="py-12 md:py-14">
+  <div class="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-[1.3fr_0.9fr] gap-10 items-start">
+    <form id="loginForm" class="max-w-xl space-y-5">
+      <div class="flex flex-col gap-1.5">
+      <label for="loginEmail" class="text-sm font-semibold">Email address</label>
+      <input type="email" id="loginEmail" class="border border-line rounded px-3 py-2.5 text-sm bg-white text-ink focus:outline focus:outline-2 focus:outline-gold" >
+    </div>
+      <div class="flex flex-col gap-1.5">
+        <label for="loginPassword" class="text-sm font-semibold">Password</label>
+        <input type="password" id="loginPassword" class="border border-line rounded px-3 py-2.5 text-sm bg-white text-ink focus:outline focus:outline-2 focus:outline-gold">
+        <span class="text-xs text-inksoft"><a href="#" class="text-teal">Forgot your password?</a></span>
+      </div>
+      <button type="submit" class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded font-semibold text-sm bg-ink text-white hover:bg-teal transition-colors w-full">Log in</button>
+      <p id="loginNote" class="text-sm min-h-[1.2em]"></p>
+    </form>
+
+    <aside class="bg-white border border-line rounded p-6 h-fit">
+      <h3 class="text-base mb-2.5">New to ISCEST?</h3>
+      <p class="text-inksoft text-sm">Membership includes journal access, conference discounts, and chapter events across 60 countries.</p>
+      <ul class="space-y-2.5 mt-3">
+        <li class="text-sm text-inksoft pl-4 relative before:content-['—'] before:absolute before:left-0 before:text-gold">Applications are reviewed within 2–3 business days</li>
+        <li class="text-sm text-inksoft pl-4 relative before:content-['—'] before:absolute before:left-0 before:text-gold">Student, professional, and institutional tiers available</li>
+      </ul>
+      <a href="registration.html" class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded font-semibold text-sm border border-ink text-ink hover:bg-ink hover:text-white transition-colors w-full mt-4">Create an account</a>
+    </aside>
+  </div>
+</section>
+
+<script>
+  const LOGIN_API = (window.ISCEST_API_BASE || "http://localhost:5000/api") + "/users/login";
+
+  document.getElementById("loginForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const note = document.getElementById("loginNote");
+    const payload = {
+      email: document.getElementById("loginEmail").value,
+      password: document.getElementById("loginPassword").value,
+    };
+    note.className = "text-sm min-h-[1.2em] text-inksoft";
+    note.textContent = "Signing in…";
+    try {
+      const res = await fetch(LOGIN_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Login failed");
+      localStorage.setItem("iscest_token", data.token);
+      note.className = "text-sm min-h-[1.2em] text-teal";
+      note.textContent = `Signed in — welcome back, ${data.name}.`;
+      e.target.reset();
+    } catch (err) {
+      note.className = "text-sm min-h-[1.2em] text-[#BD4E2C]";
+      note.textContent = `Couldn't reach the ISCEST API (${err.message}). Start the backend in /backend to enable live login.`;
+    }
+  });
+</script>
+
+</main>
+<footer class="bg-ink text-slate-300 pt-11 pb-5">
+  <div class="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8">
+    <div class="md:col-span-1">
+      <img src="assets/logo.svg" alt="ISCEST" class="w-44" style="filter:invert(1) brightness(1.6);">
+      <p class="mt-3 text-sm max-w-[32ch] text-slate-400">Advancing research and practice in comparative education, science and technology through conferences, journals, and a global member community..</p>
+    </div>
+    <div>
+      <h4 class="text-white text-sm font-semibold mb-3">Explore</h4>
+      <ul class="space-y-2 text-sm">
+        <li><a href="about.html" class="hover:text-gold transition-colors">About ISCEST</a></li>
+        <li><a href="news.html" class="hover:text-gold transition-colors">News</a></li>
+        <li><a href="events.html" class="hover:text-gold transition-colors">Events</a></li>
+        <li><a href="conference.html" class="hover:text-gold transition-colors">Conference</a></li>
+        <li><a href="journals.html" class="hover:text-gold transition-colors">Journals</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4 class="text-white text-sm font-semibold mb-3">Membership</h4>
+      <ul class="space-y-2 text-sm">
+        <li><a href="membership.html" class="hover:text-gold transition-colors">Membership overview</a></li>
+        <li><a href="registration.html" class="hover:text-gold transition-colors">Registration Form</a></li>
+        <li><a href="login.html" class="hover:text-gold transition-colors">Login / Account</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4 class="text-white text-sm font-semibold mb-3">Get in touch</h4>
+      <ul class="space-y-2 text-sm">
+        <li><a href="contact.html" class="hover:text-gold transition-colors">Contact us</a></li>
+        <li><a href="mailto:info@iscest.org" class="hover:text-gold transition-colors">info@iscest.com</a></li>
+        <li><a href="#" class="hover:text-gold transition-colors">LinkedIn</a></li>
+        <li><a href="#" class="hover:text-gold transition-colors">X (Twitter)</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="max-w-6xl mx-auto px-6 mt-8 pt-4 border-t border-slate-700 text-xs text-slate-500 flex flex-wrap justify-between gap-2">
+    <p>© 2026 ISCEST — International Society for Computer Engineering, Science and Technology.</p>
+    <p><a href="#" class="hover:text-gold">Privacy Policy</a> · <a href="#" class="hover:text-gold">Terms of Use</a></p>
+  </div>
+</footer>
+<script src="js/main.js"></script>
+</body>
+</html>

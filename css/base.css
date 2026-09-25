@@ -1,0 +1,5 @@
+/* Small base layer that Tailwind's utility classes don't cover */
+html { scroll-behavior: smooth; }
+h1, h2, h3, h4 { font-family: "Source Serif 4", Georgia, serif; }
+:focus-visible { outline: 2px solid #B8862E; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
