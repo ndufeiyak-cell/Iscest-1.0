@@ -1,9 +1,7 @@
-// Run with: node seed.js
+// Run with: node seed.js  (or: npm run seed)
 require("dotenv").config();
-const mongoose = require("mongoose");
-const User = require("./models/User");
-const Journal = require("./models/Journal");
-const Conference = require("./models/Conference");
+const bcrypt = require("bcryptjs");
+const prisma = require("./lib/prisma");
 
 const journals = [
   { code: "JCS", title: "Journal of Computational Systems", issn: "2411-0091", frequency: "continuous", description: "Distributed systems, algorithms, and computational theory." },
@@ -11,44 +9,55 @@ const journals = [
   { code: "JSE", title: "Journal of Sustainable Engineering", issn: "2411-0115", frequency: "biannual", description: "Energy-efficient computing and green infrastructure research." },
 ];
 
-const conferences = [
-  {
-    title: "ISCEST 2027 Annual Conference",
-    startDate: new Date("2027-06-14"),
-    endDate: new Date("2027-06-17"),
-    location: "Lisbon, Portugal",
-    tracks: ["AI & intelligent systems", "Embedded & hardware engineering", "Sustainable computing"],
-    submissionDeadline: new Date("2027-01-30"),
-    description: "Four days of keynotes, technical sessions, and poster presentations.",
-  },
-];
+async function main() {
+  // Clear existing data (children first, to respect the foreign key)
+  await prisma.conferenceTrack.deleteMany();
+  await prisma.conference.deleteMany();
+  await prisma.journal.deleteMany();
 
-(async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URI);
+  await prisma.journal.createMany({ data: journals });
 
-    await Journal.deleteMany({});
-    await Journal.insertMany(journals);
+  await prisma.conference.create({
+    data: {
+      title: "ISCEST 2027 Annual Conference",
+      startDate: new Date("2027-06-14"),
+      endDate: new Date("2027-06-17"),
+      location: "Lisbon, Portugal",
+      submissionDeadline: new Date("2027-01-30"),
+      description: "Four days of keynotes, technical sessions, and poster presentations.",
+      tracks: {
+        create: [
+          { name: "AI & intelligent systems" },
+          { name: "Embedded & hardware engineering" },
+          { name: "Sustainable computing" },
+        ],
+      },
+    },
+  });
 
-    await Conference.deleteMany({});
-    await Conference.insertMany(conferences);
-
-    const adminExists = await User.findOne({ email: "admin@iscest.org" });
-    if (!adminExists) {
-      await User.create({
+  const adminExists = await prisma.user.findUnique({ where: { email: "admin@iscest.com" } });
+  if (!adminExists) {
+    const hashed = await bcrypt.hash("changeme123", 10);
+    await prisma.user.create({
+      data: {
         name: "ISCEST Admin",
-        email: "admin@iscest.org",
-        password: "changeme123",
+        email: "admin@iscest.com",
+        password: hashed,
         role: "admin",
         membershipStatus: "active",
-        tier: "Institutional — $450/yr",
-      });
-    }
-
-    console.log(`Seeded ${journals.length} journals, ${conferences.length} conference(s), and an admin account.`);
-  } catch (err) {
-    console.error(err);
-  } finally {
-    await mongoose.disconnect();
+        tier: "Full Membership — ₦10,000",
+      },
+    });
   }
-})();
+
+  console.log(`Seeded ${journals.length} journals, 1 conference, and an admin account (if it didn't already exist).`);
+}
+
+main()
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

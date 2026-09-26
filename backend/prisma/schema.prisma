@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  member
+  admin
+}
+
+enum MembershipStatus {
+  pending
+  active
+  expired
+}
+
+enum JournalFrequency {
+  continuous
+  quarterly
+  biannual
+  annual
+}
+
+// Backs the Registration Form and Login / Account pages
+model User {
+  id               String           @id @default(uuid())
+  title            String? // Mr, Miss, Mrs, Engr, Barr, Dr, Associate Professor, Professor
+  name             String // Surname first, e.g. "Adeyemi Folake"
+  sex              String?
+  email            String           @unique
+  password         String // bcrypt hash — never returned to the client
+  affiliation      String? // Institution / University
+  department       String?
+  city             String?
+  state            String?
+  country          String?
+  telephone        String?
+  specialization   String? // Area of specialization
+  tier             String           @default("Student — ₦5,000")
+  role             Role             @default(member)
+  membershipStatus MembershipStatus @default(pending)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@map("users")
+}
+
+// Backs the Journals page and the admin dashboard
+model Journal {
+  id          String           @id @default(uuid())
+  code        String           @unique
+  title       String
+  issn        String?
+  description String?
+  frequency   JournalFrequency @default(quarterly)
+  openAccess  Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@map("journals")
+}
+
+// Backs the Conference page and the admin dashboard
+model Conference {
+  id                 String            @id @default(uuid())
+  title              String
+  startDate          DateTime
+  endDate            DateTime
+  location           String
+  description        String?
+  registrationOpen   Boolean           @default(true)
+  submissionDeadline DateTime?
+  tracks             ConferenceTrack[]
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@map("conferences")
+}
+
+// Mongoose stored `tracks` as a plain string array on the Conference document.
+// Prisma/Postgres normalizes that into its own table with a foreign key.
+model ConferenceTrack {
+  id           String     @id @default(uuid())
+  name         String
+  conference   Conference @relation(fields: [conferenceId], references: [id], onDelete: Cascade)
+  conferenceId String
+
+  @@map("conference_tracks")
+}

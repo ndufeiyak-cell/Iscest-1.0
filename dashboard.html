@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Dashboard · ISCEST</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink: '#1C2333', inksoft: '#5C6478', paper: '#F6F4EE',
+          line: '#DAD5C6', gold: '#B8862E', teal: '#1F5C55', clay: '#BD4E2C',
+        },
+        fontFamily: {
+          serif: ['"Source Serif 4"', 'Georgia', 'serif'],
+          sans: ['"IBM Plex Sans"', 'ui-sans-serif', 'sans-serif'],
+        },
+      },
+    },
+  };
+</script>
+<link rel="stylesheet" href="css/base.css">
+</head>
+<body class="bg-paper text-ink font-sans antialiased">
+
+<!-- ===== LOGIN GATE ===== -->
+<section id="loginGate" class="min-h-screen flex items-center justify-center px-6">
+  <div class="w-full max-w-sm">
+    <img src="assets/logo.svg" alt="ISCEST" class="w-44 mx-auto mb-8">
+    <div class="bg-white border border-line rounded p-7">
+      <h1 class="text-xl mb-1">Admin dashboard</h1>
+      <p class="text-inksoft text-sm mb-6">Sign in with an admin account to manage members, journals, and conferences.</p>
+      <form id="dashLoginForm" class="space-y-4">
+        <div class="flex flex-col gap-1.5">
+          <label for="dashEmail" class="text-sm font-semibold">Email</label>
+          <input type="email" id="dashEmail" required class="border border-line rounded px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-gold">
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label for="dashPassword" class="text-sm font-semibold">Password</label>
+          <input type="password" id="dashPassword" required class="border border-line rounded px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-gold">
+        </div>
+        <button type="submit" class="w-full bg-ink text-white rounded py-2.5 text-sm font-semibold hover:bg-teal transition-colors">Sign in</button>
+        <p id="dashLoginNote" class="text-sm min-h-[1.2em]"></p>
+      </form>
+      <p class="text-xs text-inksoft mt-5">Seeded admin: <code class="bg-paper px-1 py-0.5 rounded">admin@iscest.org</code> / <code class="bg-paper px-1 py-0.5 rounded">changeme123</code> — change this after first login.</p>
+    </div>
+    <p class="text-center text-sm text-inksoft mt-5"><a href="index.html" class="hover:text-teal">← Back to the site</a></p>
+  </div>
+</section>
+
+<!-- ===== DASHBOARD (hidden until authenticated) ===== -->
+<div id="dashApp" class="hidden">
+
+  <header class="bg-white border-b border-line sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-6 flex items-center gap-4 py-4">
+      <a href="index.html" class="w-40 shrink-0"><img src="assets/logo.svg" alt="ISCEST" class="w-full h-auto"></a>
+      <div class="ml-2">
+        <p class="text-sm font-semibold leading-tight">Admin dashboard</p>
+        <p class="text-xs text-inksoft leading-tight">Signed in as <span id="dashUserName">—</span></p>
+      </div>
+      <div class="ml-auto flex items-center gap-2">
+        <a href="index.html" class="text-sm text-inksoft hover:text-teal px-3 py-2">View site</a>
+        <button id="logoutBtn" class="text-sm border border-line rounded px-3 py-2 hover:bg-paper transition-colors">Log out</button>
+      </div>
+    </div>
+    <nav class="border-t border-line">
+      <div class="max-w-6xl mx-auto px-6">
+        <ul class="flex gap-1" id="dashTabs">
+          <li><button data-tab="overview" class="tab-btn px-4 py-3 text-sm font-medium">Overview</button></li>
+          <li><button data-tab="members" class="tab-btn px-4 py-3 text-sm font-medium">Members</button></li>
+          <li><button data-tab="journals" class="tab-btn px-4 py-3 text-sm font-medium">Journals</button></li>
+          <li><button data-tab="conferences" class="tab-btn px-4 py-3 text-sm font-medium">Conferences</button></li>
+        </ul>
+      </div>
+    </nav>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-10">
+
+    <p id="dashError" class="hidden mb-6 text-sm text-clay bg-white border border-clay rounded px-4 py-3"></p>
+
+    <!-- OVERVIEW -->
+    <section data-panel="overview">
+      <h2 class="text-2xl mb-6">Overview</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-line border border-line">
+        <div class="p-6"><strong id="statMembers" class="block text-2xl">—</strong><span class="text-inksoft text-sm">Registered members</span></div>
+        <div class="p-6"><strong id="statActive" class="block text-2xl">—</strong><span class="text-inksoft text-sm">Active memberships</span></div>
+        <div class="p-6"><strong id="statJournals" class="block text-2xl">—</strong><span class="text-inksoft text-sm">Journals</span></div>
+        <div class="p-6"><strong id="statConferences" class="block text-2xl">—</strong><span class="text-inksoft text-sm">Conferences</span></div>
+      </div>
+    </section>
+
+    <!-- MEMBERS -->
+    <section data-panel="members" class="hidden">
+      <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <h2 class="text-2xl">Members</h2>
+        <button id="refreshMembers" class="text-sm border border-line rounded px-3 py-2 hover:bg-white transition-colors">Refresh</button>
+      </div>
+      <div class="overflow-x-auto bg-white border border-line rounded">
+        <table class="w-full text-sm border-collapse">
+          <thead>
+            <tr class="border-b border-line text-inksoft text-left">
+              <th class="p-3 font-semibold">Name</th>
+              <th class="p-3 font-semibold">Email</th>
+              <th class="p-3 font-semibold">Institution</th>
+              <th class="p-3 font-semibold">Country</th>
+              <th class="p-3 font-semibold">Tier</th>
+              <th class="p-3 font-semibold">Status</th>
+              <th class="p-3 font-semibold">Joined</th>
+            </tr>
+          </thead>
+          <tbody id="membersBody"></tbody>
+        </table>
+        <p id="membersEmpty" class="hidden p-6 text-center text-inksoft text-sm">No members yet.</p>
+      </div>
+    </section>
+
+    <!-- JOURNALS -->
+    <section data-panel="journals" class="hidden">
+      <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <h2 class="text-2xl">Journals</h2>
+        <button id="newJournalBtn" class="bg-ink text-white text-sm rounded px-4 py-2.5 font-semibold hover:bg-teal transition-colors">+ New journal</button>
+      </div>
+
+      <form id="journalForm" class="hidden bg-white border border-line rounded p-6 mb-6 space-y-4">
+        <input type="hidden" id="journalId">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="flex flex-col gap-1.5"><label class="text-sm font-semibold">Code</label><input id="jCode" required class="border border-line rounded px-3 py-2 text-sm" placeholder="JCS"></div>
+          <div class="flex flex-col gap-1.5 sm:col-span-2"><label class="text-sm font-semibold">Title</label><input id="jTitle" required class="border border-line rounded px-3 py-2 text-sm"></div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="flex flex-col gap-1.5"><label class="text-sm font-semibold">ISSN</label><input id="jIssn" class="border border-line rounded px-3 py-2 text-sm"></div>
+          <div class="flex flex-col gap-1.5"><label class="text-sm font-semibold">Frequency</label>
+            <select id="jFrequency" class="border border-line rounded px-3 py-2 text-sm">
+              <option value="continuous">Continuous</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="biannual">Biannual</option>
+              <option value="annual">Annual</option>
+            </select>
+          </div>
+          <div class="flex items-end gap-2 pb-1.5"><input type="checkbox" id="jOpenAccess" checked class="w-4 h-4"><label for="jOpenAccess" class="text-sm">Open access</label></div>
+        </div>
+        <div class="flex flex-col gap-1.5"><label class="text-sm font-semibold">Description</label><textarea id="jDescription" rows="2" class="border border-line rounded px-3 py-2 text-sm"></textarea></div>
+        <div class="flex gap-3">
+          <button type="submit" class="bg-ink text-white text-sm rounded px-4 py-2.5 font-semibold hover:bg-teal transition-colors">Save journal</button>
+          <button type="button" id="cancelJournal" class="text-sm border border-line rounded px-4 py-2.5 hover:bg-paper transition-colors">Cancel</button>
+        </div>
+      </form>
+
+      <div class="overflow-x-auto bg-white border border-line rounded">
+        <table class="w-full text-sm border-collapse">
+          <thead>
+            <tr class="border-b border-line text-inksoft text-left">
+              <th class="p-3 font-semibold">Code</th><th class="p-3 font-semibold">Title</th>
+              <th class="p-3 font-semibold">Frequency</th><th class="p-3 font-semibold">ISSN</th>
+              <th class="p-3 font-semibold"></th>
+            </tr>
+          </thead>
+          <tbody id="journalsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- CONFERENCES -->
+    <section data-panel="conferences" class="hidden">
+      <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <h2 class="text-2xl">Conferences</h2>
+        <button id="newConferenceBtn" class="bg-ink text-white text-sm rounded px-4 py-2.5 font-semibold hover:bg-teal transition-colors">+ New conference</button>
+      </div>
+
+      <form id="conferenceForm" class="hidden bg-white border border-line rounded p-6 mb-6 space-y-4">
+        <input type="hidden" id="confId">
+        <div class="flex flex-col gap-1.5"><label class="text-sm font-semibold">Title</label><input id="cTitle" required class="border border-line rounded px-3 py-2 text-sm"></div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="flex flex-col gap-1.5"><label class="text-sm font-semibold">Start date</label><input type="date" id="cStart" required class="border border-line rounded px-3 py-2 text-sm"></div>
+          <div class="flex flex-col gap-1.5"><label class="text-sm font-semibold">End date</label><input type="date" id="cEnd" required class="border border-line rounded px-3 py-2 text-sm"></div>
+          <div class="flex flex-col gap-1.5"><label class="text-sm font-semibold">Submission deadline</label><input type="date" id="cDeadline" class="border border-line rounded px-3 py-2 text-sm"></div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="flex flex-col gap-1.5"><label class="text-sm font-semibold">Location</label><input id="cLocation" required class="border border-line rounded px-3 py-2 text-sm"></div>
+          <div class="flex flex-col gap-1.5"><label class="text-sm font-semibold">Tracks (comma-separated)</label><input id="cTracks" class="border border-line rounded px-3 py-2 text-sm" placeholder="AI systems, Embedded engineering"></div>
+        </div>
+        <div class="flex flex-col gap-1.5"><label class="text-sm font-semibold">Description</label><textarea id="cDescription" rows="2" class="border border-line rounded px-3 py-2 text-sm"></textarea></div>
+        <div class="flex items-center gap-2"><input type="checkbox" id="cRegOpen" checked class="w-4 h-4"><label for="cRegOpen" class="text-sm">Registration open</label></div>
+        <div class="flex gap-3">
+          <button type="submit" class="bg-ink text-white text-sm rounded px-4 py-2.5 font-semibold hover:bg-teal transition-colors">Save conference</button>
+          <button type="button" id="cancelConference" class="text-sm border border-line rounded px-4 py-2.5 hover:bg-paper transition-colors">Cancel</button>
+        </div>
+      </form>
+
+      <div class="overflow-x-auto bg-white border border-line rounded">
+        <table class="w-full text-sm border-collapse">
+          <thead>
+            <tr class="border-b border-line text-inksoft text-left">
+              <th class="p-3 font-semibold">Title</th><th class="p-3 font-semibold">Dates</th>
+              <th class="p-3 font-semibold">Location</th><th class="p-3 font-semibold">Reg. open</th>
+              <th class="p-3 font-semibold"></th>
+            </tr>
+          </thead>
+          <tbody id="conferencesBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="js/admin.js"></script>
+</body>
+</html>
