@@ -53,13 +53,27 @@ async function checkAuth() {
 
   // The role isn't in the session — it lives in the profiles table, so ask
   // the API for it.
+  //
+  // A failed lookup and a non-admin account both leave `profile` null/plain,
+  // but they need different words: if this call is what's broken, silently
+  // dropping back to the login form makes a successful sign-in look like it
+  // did nothing at all. So keep the reason and report it below.
   let profile = null;
+  let lookupError = null;
   if (session) {
     try {
       const res = await window.iscestApi("/users/me");
-      if (res.ok) profile = await res.json();
+      if (res.ok) {
+        profile = await res.json();
+      } else {
+        // A proxy or static host can answer with HTML, so don't assume JSON.
+        const body = await res.json().catch(() => null);
+        lookupError = `the API replied ${res.status}${
+          body?.message ? ` (${body.message})` : ""
+        }`;
+      }
     } catch (err) {
-      /* network hiccup — treated as "not signed in" below */
+      lookupError = "the API couldn't be reached at all";
     }
   }
 
@@ -80,7 +94,10 @@ async function checkAuth() {
   // A non-admin who is signed in gets told why, rather than being shown a
   // login form they'd only fail against.
   const note = document.getElementById("dashLoginNote");
-  if (session && profile && profile.role !== "admin") {
+  if (session && !profile) {
+    note.className = "text-sm min-h-[1.2em] text-clay";
+    note.textContent = `You're signed in, but ${lookupError} — the dashboard needs that call to confirm your role.`;
+  } else if (session && profile.role !== "admin") {
     note.className = "text-sm min-h-[1.2em] text-clay";
     note.textContent = `${profile.name || "This account"} doesn't have admin access.`;
   } else if (note) {

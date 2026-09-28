@@ -8,7 +8,17 @@
       "Bash(sed -n '/iscestApi/,/^}/p' public/js/supabase-client.js)",
       "Bash(rm -f ./tmp-test-status.js /tmp/test-status.js)",
       "Bash(node)",
-      "Bash(curl -s -o /dev/null -w \"dashboard.html %{http_code}\\\\nbase.css %{http_code}\\\\n\" http://localhost:3000/dashboard.html)"
+      "Bash(curl -s -o /dev/null -w \"dashboard.html %{http_code}\\\\nbase.css %{http_code}\\\\n\" http://localhost:3000/dashboard.html)",
+      "Bash(sed -i 's#require\\(\"/tmp/cascade.js\"\\)#require\\(\"./cascade.js\"\\)#' /tmp/cascade2.js)",
+      "Bash(node /tmp/cascade2.js)",
+      "Bash(cat)",
+      "Bash(node /tmp/dbg.js)",
+      "Bash(sed -i 's#const want=\\(vis\\\\[k\\\\].r.cls.has\\(\"detail-row\"\\)\\)?0.75:0;   // card->its details merges; details->next card spaces#const isItsDetails = vis[k+1].r.cls.has\\(\"detail-row\"\\) \\\\&\\\\& vis[k+1].i===vis[k].i+1;\\\\n    const want = isItsDetails ? 0 : 0.75;#' /tmp/cascade3.js)",
+      "Read(//tmp/**)",
+      "Bash(node /tmp/cascade3.js)",
+      "Bash(rm -f /tmp/cascade.js /tmp/cascade2.js /tmp/cascade3.js /tmp/dbg.js /tmp/iscest-serve.log)",
+      "Bash(cp /tmp/diag.js ./_diag.js)",
+      "Bash(node ./_diag.js)"
     ]
   }
 }
