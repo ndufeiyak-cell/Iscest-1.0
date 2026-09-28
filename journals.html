@@ -132,7 +132,7 @@
 <script>
   // Replaces the static cards above with live data from /api/journals if the backend is reachable.
   (async () => {
-    const API = (window.ISCEST_API_BASE || "http://localhost:5000/api") + "/journals";
+    const API = (window.ISCEST_API_BASE || "/api") + "/journals";
     const grid = document.getElementById("journalsGrid");
     const status = document.getElementById("journalsStatus");
     try {

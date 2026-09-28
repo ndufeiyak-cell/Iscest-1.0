@@ -31,7 +31,9 @@
   };
 </script>
 <link rel="stylesheet" href="css/base.css">
-<script>window.ISCEST_API_BASE = "https://iscest-api.onrender.com/api";</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/iscest-config.js"></script>
+<script src="js/supabase-client.js"></script>
 </head>
 <body class="bg-paper text-ink font-sans antialiased">
 <a class="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[999] focus:bg-ink focus:text-white focus:px-4 focus:py-2 focus:rounded" href="#main">Skip to content</a>
@@ -121,40 +123,58 @@
 </section>
 
 <script>
-  const LOGIN_API = (window.ISCEST_API_BASE || "http://localhost:5000/api") + "/users/login";
+  const loginForm = document.getElementById("loginForm");
+  const loginNote = document.getElementById("loginNote");
 
-  document.getElementById("loginForm")?.addEventListener("submit", async (e) => {
+  function setNote(text, tone) {
+    loginNote.className = `text-sm min-h-[1.2em] ${tone}`;
+    loginNote.textContent = text;
+  }
+
+  loginForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const note = document.getElementById("loginNote");
-    const payload = {
+
+    if (!window.iscestSupabase) {
+      setNote("Authentication isn't configured — check js/iscest-config.js.", "text-[#BD4E2C]");
+      return;
+    }
+
+    setNote("Signing in…", "text-inksoft");
+
+    const { data, error } = await window.iscestSupabase.auth.signInWithPassword({
       email: document.getElementById("loginEmail").value,
       password: document.getElementById("loginPassword").value,
-    };
-    note.className = "text-sm min-h-[1.2em] text-inksoft";
-    note.textContent = "Signing in…";
-    try {
-      const res = await fetch(LOGIN_API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Login failed");
-      localStorage.setItem("iscest_token", data.token);
-      localStorage.setItem("iscest_role", data.role || "member");
-      localStorage.setItem("iscest_name", data.name || "");
-      note.className = "text-sm min-h-[1.2em] text-teal";
-      note.textContent = data.role === "admin"
-        ? `Signed in as admin — go to the dashboard.`
-        : `Signed in — welcome back, ${data.name}.`;
-      if (data.role === "admin") {
-        note.innerHTML += ` <a href="dashboard.html" class="underline font-semibold">Open dashboard →</a>`;
-      }
-      e.target.reset();
-    } catch (err) {
-      note.className = "text-sm min-h-[1.2em] text-[#BD4E2C]";
-      note.textContent = `Couldn't reach the ISCEST API (${err.message}). Start the backend in /backend to enable live login.`;
+    });
+
+    if (error) {
+      setNote(error.message, "text-[#BD4E2C]");
+      return;
     }
+
+    // The role lives in the profiles table, not in the session, so ask the
+    // API — it's what decides who may see the admin dashboard.
+    let profile = null;
+    try {
+      const res = await window.iscestApi("/users/me");
+      if (res.ok) profile = await res.json();
+    } catch (err) {
+      // Signed in, but the API is unreachable — carry on without the
+      // dashboard link rather than failing the whole login.
+    }
+
+    setNote(`Signed in — welcome back, ${profile?.name || data.user?.email || ""}.`, "text-teal");
+
+    // Built as a node rather than innerHTML: `profile.name` comes from a
+    // form the user filled in, so it must never be parsed as markup.
+    if (profile?.role === "admin") {
+      const link = document.createElement("a");
+      link.href = "dashboard.html";
+      link.className = "underline font-semibold";
+      link.textContent = "Open dashboard →";
+      loginNote.append(" ", link);
+    }
+
+    e.target.reset();
   });
 </script>
 

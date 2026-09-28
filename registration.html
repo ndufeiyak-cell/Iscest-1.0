@@ -182,19 +182,36 @@
   </div>
 </section>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/iscest-config.js"></script>
+<script src="js/supabase-client.js"></script>
 <script>
-  // Wire this form to the Express/Prisma backend in /backend (see README).
-  const REGISTER_API = (window.ISCEST_API_BASE || "http://localhost:5000/api") + "/users/register";
+  // Signup goes straight to Supabase Auth — no round-trip through our own
+  // API. The auth.users trigger (public.handle_new_user) reads the metadata
+  // below and creates the matching public.profiles row.
+  const registrationForm = document.getElementById("registrationForm");
+  const registrationNote = document.getElementById("registrationNote");
 
-  document.getElementById("registrationForm")?.addEventListener("submit", async (e) => {
+  function setNote(text, tone) {
+    registrationNote.className = `text-sm min-h-[1.2em] ${tone}`;
+    registrationNote.textContent = text;
+  }
+
+  registrationForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const note = document.getElementById("registrationNote");
-    const payload = {
+
+    if (!window.iscestSupabase) {
+      setNote("Authentication isn't configured — check js/iscest-config.js.", "text-[#BD4E2C]");
+      return;
+    }
+
+    // Sent as signup metadata for the trigger to pick up. Empty fields are
+    // coerced to NULL there. Note there's no `role` here: the trigger
+    // hardcodes 'member', so this form can't mint an admin.
+    const metadata = {
       title: document.getElementById("title").value,
       name: document.getElementById("regName").value,
       sex: document.getElementById("sex").value,
-      email: document.getElementById("regEmail").value,
-      password: document.getElementById("regPassword").value,
       affiliation: document.getElementById("affiliation").value,
       department: document.getElementById("department").value,
       city: document.getElementById("city").value,
@@ -204,24 +221,30 @@
       specialization: document.getElementById("specialization").value,
       tier: document.getElementById("tier").value,
     };
-    note.className = "text-sm min-h-[1.2em] text-inksoft";
-    note.textContent = "Submitting…";
-    try {
-      const res = await fetch(REGISTER_API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Registration failed");
-      if (data.token) localStorage.setItem("iscest_token", data.token);
-      note.className = "text-sm min-h-[1.2em] text-teal";
-      note.textContent = "Thanks — your application has been received. Check your email for confirmation.";
-      e.target.reset();
-    } catch (err) {
-      note.className = "text-sm min-h-[1.2em] text-[#BD4E2C]";
-      note.textContent = `Couldn't reach the ISCEST API (${err.message}). Start the backend in /backend to enable live registration.`;
+
+    setNote("Submitting…", "text-inksoft");
+
+    const { data, error } = await window.iscestSupabase.auth.signUp({
+      email: document.getElementById("regEmail").value,
+      password: document.getElementById("regPassword").value,
+      options: { data: metadata },
+    });
+
+    if (error) {
+      setNote(error.message, "text-[#BD4E2C]");
+      return;
     }
+
+    // With email confirmation on — the Supabase default — signUp returns a
+    // user but no session, and the account can't be used until they click
+    // the link. With it off, they're signed in straight away.
+    setNote(
+      data.session
+        ? "Thanks — your application has been received."
+        : "Thanks — check your email to confirm your address, then log in.",
+      "text-teal"
+    );
+    e.target.reset();
   });
 </script>
 
