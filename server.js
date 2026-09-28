@@ -56,29 +56,22 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 
-// Export the app as well as starting it. Vercel finds an Express app by
-// looking for this export in `server.js`, and bundles it into a single
-// function — that is what makes /api/* reachable in production. Without it
-// Vercel sees only the public/ directory, publishes the site as static
-// files, and every API call 404s at the platform before reaching Express.
+// Vercel finds a Node server by the listen() call made while this module
+// loads, and routes requests to it. That call is the only thing that makes
+// /api/* reachable in production: hide it behind a `require.main === module`
+// check and Vercel sees no server at all, publishes public/ as a static site
+// instead, and every API call 404s at the platform before reaching Express.
 //
-// Deliberately no api/ directory alongside this: a function at api/index.js
-// would claim the /api path itself and shadow these routes.
-module.exports = app;
+// The PORT below applies locally; Vercel uses its own internal port and does
+// not expose this one.
+app.listen(PORT, () => console.log(`ISCEST listening on http://localhost:${PORT}`));
 
-// Only bind a port when this file is the entry point (`npm start`,
-// `npm run dev`, Hostinger's startup file). On Vercel the module is imported
-// by the runtime, which serves traffic through the export above instead.
-if (require.main === module) {
-  app.listen(PORT, () => console.log(`ISCEST listening on http://localhost:${PORT}`));
-
-  // Best-effort connectivity check, logged but never fatal — the static pages
-  // should keep serving even if Supabase is briefly unreachable.
-  supabaseAdmin
-    .from("journals")
-    .select("id", { count: "exact", head: true })
-    .then(({ error }) => {
-      if (error) console.warn(`Supabase check failed: ${error.message}`);
-      else console.log("Connected to Supabase");
-    });
-}
+// Best-effort connectivity check, logged but never fatal — the static pages
+// should keep serving even if Supabase is briefly unreachable.
+supabaseAdmin
+  .from("journals")
+  .select("id", { count: "exact", head: true })
+  .then(({ error }) => {
+    if (error) console.warn(`Supabase check failed: ${error.message}`);
+    else console.log("Connected to Supabase");
+  });

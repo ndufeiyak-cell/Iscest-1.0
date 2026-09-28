@@ -19,7 +19,10 @@
       "Bash(rm -f /tmp/cascade.js /tmp/cascade2.js /tmp/cascade3.js /tmp/dbg.js /tmp/iscest-serve.log)",
       "Bash(cp /tmp/diag.js ./_diag.js)",
       "Bash(node ./_diag.js)",
-      "WebFetch(domain:vercel.com)"
+      "WebFetch(domain:vercel.com)",
+      "Bash(node --check server.js)",
+      "Bash(grep -vE \"^[-+]\\\\s*//\")",
+      "Bash(grep -vE \"^[-+]\\\\s*$\")"
     ]
   }
 }
