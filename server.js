@@ -1,0 +1,54 @@
+require("dotenv").config();
+
+const path = require("path");
+const express = require("express");
+const morgan = require("morgan");
+
+// Required first so a missing/invalid Supabase config fails immediately with
+// a clear message, rather than on the first request.
+const supabaseAdmin = require("./src/lib/supabaseAdmin");
+
+const userRoutes = require("./src/routes/users");
+const journalRoutes = require("./src/routes/journals");
+const conferenceRoutes = require("./src/routes/conferences");
+
+const app = express();
+
+app.use(express.json());
+app.use(morgan("dev"));
+
+app.get("/api/health", (req, res) => res.json({ message: "ISCEST API is running" }));
+
+// API routes mount before the static handler, so /api/* is never served a
+// stray file, and an unknown /api path gets a JSON 404 instead of falling
+// through to the site.
+app.use("/api/users", userRoutes);
+app.use("/api/journals", journalRoutes);
+app.use("/api/conferences", conferenceRoutes);
+app.use("/api", (req, res) => res.status(404).json({ message: "Route not found" }));
+
+// The site itself. Served from public/ rather than the repo root so that
+// server.js, package.json, node_modules/ and supabase/migrations/ are not
+// published to the web.
+app.use(express.static(path.join(__dirname, "public")));
+
+app.use((req, res) => res.status(404).json({ message: "Not found" }));
+
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(err.status || 500).json({ message: err.message || "Server error" });
+});
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => console.log(`ISCEST listening on http://localhost:${PORT}`));
+
+// Best-effort connectivity check, logged but never fatal — the static pages
+// should keep serving even if Supabase is briefly unreachable.
+supabaseAdmin
+  .from("journals")
+  .select("id", { count: "exact", head: true })
+  .then(({ error }) => {
+    if (error) console.warn(`Supabase check failed: ${error.message}`);
+    else console.log("Connected to Supabase");
+  });

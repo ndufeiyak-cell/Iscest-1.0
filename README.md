@@ -1,98 +1,121 @@
 # ISCEST
 
-A professional society website: a static Tailwind front end plus an Express + MongoDB REST API for membership accounts, journals, and conferences.
-
-> Backend stack assumed as Node.js / Express / MongoDB, matching what was used earlier in this project. Swap it out if you had a different stack in mind.
+A professional society website: a static Tailwind front end plus an Express API, served as **one Node app** with **Supabase** providing authentication and the Postgres database.
 
 ```
 iscest/
-├── index.html, about.html, news.html, events.html,   Front end — static
-│   conference.html, journals.html, membership.html,   HTML + Tailwind (via CDN)
-│   registration.html, login.html, contact.html
-├── assets/
-│   ├── logo.svg          header/footer logo
-│   └── vision.svg         homepage "Our vision" illustration
-├── css/base.css            the handful of styles Tailwind utilities don't cover
-├── js/main.js               nav toggle, membership dropdown, search, contact demo
-├── backend/                  Express REST API
-│   ├── server.js
-│   ├── config/db.js
-│   ├── models/                 User, Journal, Conference (Mongoose schemas)
-│   ├── controllers/            CRUD + auth logic
-│   ├── routes/                  API endpoints
-│   ├── middleware/auth.js       JWT auth + admin guard
-│   └── seed.js                   sample journals, a conference, an admin account
-└── README.md
+├── server.js              Express — serves public/ and /api/* from one process
+├── seed.js                creates the admin account
+├── package.json
+├── .env / .env.example
+├── public/                the website — static, no build step
+│   ├── index.html, about.html, news.html, events.html, conference.html,
+│   │   journals.html, membership.html, registration.html, login.html,
+│   │   contact.html, dashboard.html
+│   ├── assets/
+│   ├── css/base.css
+│   └── js/
+│       ├── iscest-config.js    Supabase URL + anon key + API base — edit this
+│       ├── supabase-client.js  the browser Supabase client (auth only)
+│       ├── main.js             nav toggle, membership dropdown, search
+│       └── admin.js            the admin dashboard
+├── src/
+│   ├── routes/                 API endpoints
+│   ├── controllers/            users, journals, conferences
+│   ├── middleware/auth.js      Supabase token check + admin guard
+│   └── lib/
+│       ├── supabaseAdmin.js    service-role client (server only)
+│       └── mappers.js          camelCase API <-> snake_case columns
+└── supabase/migrations/        the schema, as versioned SQL
 ```
 
-## 1. Run the front end
+## 1. Create the Supabase project
 
-Static, no build step — open `index.html` directly, or serve the folder:
+1. Make a project at [supabase.com/dashboard](https://supabase.com/dashboard).
+2. From **Project Settings → API**, collect three values:
+   - **Project URL** → `SUPABASE_URL`
+   - **anon public** key → `SUPABASE_ANON_KEY`
+   - **service_role** key → `SUPABASE_SERVICE_ROLE_KEY`
+
+## 2. Apply the migrations
+
+The schema lives in `supabase/migrations/` as four versioned files — tables, the auth→profiles trigger, the RLS policies, and the sample journals and conference.
 
 ```bash
-npx serve .
+npm install -g supabase      # or use npx supabase
+supabase login
+supabase link --project-ref <your-project-ref>
+supabase db push
 ```
 
-Tailwind and Google Fonts load from CDNs, so an internet connection is needed to see the styling.
+That's the whole schema. Nothing else needs running by hand.
 
-## 2. Run the backend
+To test against a throwaway local stack instead, run `supabase start` then `supabase db reset` — the migrations replay from scratch.
 
-**Requirements:** Node.js 18+, a MongoDB connection string (local `mongod` or a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster).
+## 3. Configure and run
 
 ```bash
-cd backend
+cp .env.example .env      # fill in the three Supabase values
 npm install
-cp .env.example .env      # fill in MONGO_URI and JWT_SECRET
-npm run dev                 # nodemon, restarts on save
+npm run seed              # creates admin@iscest.com / changeme123
+npm run dev               # http://localhost:3000
 ```
 
-Load sample data (3 journals, the 2027 conference, an admin account):
+Express serves the site and the API on the same port, so there's nothing else to start. `npm run seed` only creates the admin account — the journals and conference come from the migration above.
 
-```bash
-node seed.js
-```
+**Change the seeded password before this is public.** Registration and login are otherwise fully self-service.
 
-The API runs at `http://localhost:5000` by default.
+## 4. How authentication works
 
-## 3. How the front end talks to the API
+Supabase Auth owns credentials; this codebase never sees a password beyond passing it to `signUp`/`signInWithPassword` in the browser.
 
-`registration.html` and `login.html` already call the API directly:
+- **Registration** (`registration.html`) calls `supabase.auth.signUp` with the academic fields as metadata. A Postgres trigger on `auth.users` (`public.handle_new_user`) creates the matching `public.profiles` row. It **hardcodes `role = 'member'`** — metadata is attacker-controlled, so copying a role out of it would let anyone sign up as an admin.
+- **Login** (`login.html`, `dashboard.html`) calls `signInWithPassword`. supabase-js stores the session and refreshes it automatically.
+- **Every API call** then sends `Authorization: Bearer <access_token>`. `src/middleware/auth.js` validates it with `supabase.auth.getUser()` and loads the caller's `role` from `profiles`.
 
-- **Registration Form** → `POST /api/users/register` with `{ name, email, password, institution, country, tier, interest }`. On success it stores the returned JWT in `localStorage` under `iscest_token`.
-- **Login** → `POST /api/users/login` with `{ email, password }`, same token handling.
-
-If the API isn't running, both forms show a friendly "couldn't reach the API" message instead of failing silently — that's expected until you start the backend.
-
-To point the front end at a deployed API instead of `localhost:5000`, set `window.ISCEST_API_BASE = "https://your-api.example.com/api";` in a `<script>` tag before `js/main.js` loads on any page.
-
-`journals.html` and `conference.html` already fetch live data from `GET /api/journals` and `GET /api/conferences?upcoming=true` and fall back to sample content if the API isn't reachable.
-
-## 4. Admin dashboard
-
-`dashboard.html` (linked from the site footer as "Admin") is a login-gated panel for managing the site's data:
-
-- **Overview** — member, journal, and conference counts at a glance
-- **Members** — read-only list of everyone who's submitted the Registration Form
-- **Journals** / **Conferences** — full create, edit, and delete, backed by the same API the public pages read from
-
-It requires an account with `role: "admin"` — the seeded account (`admin@iscest.org` / `changeme123`, from `node seed.js`) works out of the box. Change that password before using this anywhere real. To promote another account to admin, update its `role` field to `"admin"` directly in MongoDB (there's no self-service promotion by design).
+If you leave email confirmation on (the Supabase default), a new registration gets a user but no session until they click the emailed link — the form says so.
 
 ## 5. API reference
 
-| Resource | Endpoints | Notes |
-|---|---|---|
-| Users / accounts | `POST /api/users/register`, `POST /api/users/login`, `GET /api/users/me` (auth), `GET /api/users` (admin) | Registration doubles as account creation — `tier` and `interest` come straight from the Registration Form |
-| Journals | `GET /api/journals`, `GET /api/journals/:id`, `POST/PUT/DELETE` (admin) | `frequency`: continuous / quarterly / biannual / annual |
-| Conferences | `GET /api/conferences`, `GET /api/conferences?upcoming=true`, `GET /api/conferences/:id`, `POST/PUT/DELETE` (admin) | `startDate` / `endDate` / `submissionDeadline` are real `Date` fields |
-
-Protected routes expect `Authorization: Bearer <token>`. The seeded admin (`admin@iscest.org` / `changeme123`) can create and edit journals and conferences — change that password before using it anywhere real.
-
-## 5. Deployment
-
-| Piece | Suggested host |
+| Resource | Endpoints |
 |---|---|
-| Front end | Netlify, Vercel, or GitHub Pages |
-| Backend | Render, Railway, or Fly.io — set `MONGO_URI`, `JWT_SECRET`, `CLIENT_ORIGIN` as environment variables |
-| Database | MongoDB Atlas free tier |
+| Users | `GET /api/users/me` (auth), `GET /api/users` (admin) |
+| Journals | `GET /api/journals`, `GET /api/journals/:id`, `POST`/`PUT`/`DELETE` (admin) |
+| Conferences | `GET /api/conferences`, `GET /api/conferences?upcoming=true`, `GET /api/conferences/:id`, `POST`/`PUT`/`DELETE` (admin) |
+| Health | `GET /api/health` |
 
-After deploying, update `CLIENT_ORIGIN` on the backend and `window.ISCEST_API_BASE` on the front end to point at each other.
+`GET /api/conferences` returns tracks as a plain string array, e.g. `"tracks": ["AI & intelligent systems", ...]`.
+
+There are deliberately **no `/api/users/register` or `/api/users/login`** endpoints — the browser goes straight to Supabase Auth.
+
+Protected routes expect `Authorization: Bearer <token>`. `role: "admin"` is the only privilege level; promote someone with:
+
+```sql
+update public.profiles set role = 'admin' where email = 'someone@example.com';
+```
+
+## 6. Admin dashboard
+
+`dashboard.html` (linked from the site footer as "Admin") is gated on a signed-in account whose `profiles.role` is `admin`:
+
+- **Overview** — member, journal, and conference counts
+- **Members** — read-only list of everyone who submitted the Registration Form
+- **Journals** / **Conferences** — full create, edit, and delete
+
+## 7. Deploying to Hostinger (Node.js app hosting)
+
+The repo root *is* the app. There is no build step.
+
+1. In hPanel, create a **Node.js application** pointing at this repo's root directory.
+2. **Startup file:** `server.js`. **Node version:** 18 or newer.
+3. Add the environment variables from `.env` in the app's settings — `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Hostinger injects `PORT`, which `server.js` already reads.
+4. Install dependencies (`npm install`).
+5. Fill in `public/js/iscest-config.js` with the project URL and the **anon** key, and point `ISCEST_API_BASE` at `/api` (the default).
+
+Because the front end and API share an origin, there is no CORS configuration and no second host to manage.
+
+## 8. Security notes
+
+- **The service-role key bypasses Row Level Security.** It belongs only in the server's environment. It must never appear in `public/`, including `js/iscest-config.js` — that file is meant to hold the *anon* key, which is publishable.
+- **RLS is deny-by-default and read-only.** The policies in `supabase/migrations/20260928090200_rls_policies.sql` grant SELECT on public content and a member's own profile, and grant nothing else. Writes go through the service-role client after `src/middleware/auth.js` has authorized them, so a leaked anon key can't write anything.
+- **`.env` is gitignored.** It previously wasn't (the old `.gitignore` was malformed), so if you're working from an older clone, check `git log -- backend/.env` — any secret in that history should be rotated.

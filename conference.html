@@ -161,7 +161,7 @@ Competitiveness.
 <script>
   // Replaces the static date/title/tracks above with live data from /api/conferences if reachable.
   (async () => {
-    const API = (window.ISCEST_API_BASE || "http://localhost:5000/api") + "/conferences?upcoming=true";
+    const API = (window.ISCEST_API_BASE || "/api") + "/conferences?upcoming=true";
     try {
       const res = await fetch(API);
       if (!res.ok) throw new Error("API responded with an error");
