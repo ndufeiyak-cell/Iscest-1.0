@@ -1,10 +1,6 @@
-// ISCEST — public runtime config. Loaded on every page, before the others.
-//
-// Fill these in from the Supabase dashboard: Project Settings -> API.
-//
-// The anon key is publishable by design — Row Level Security is what limits
-// what it can reach, and the policies in
-// supabase/migrations/20260928090200_rls_policies.sql make it read-only.
+// ISCEST — fallback public runtime config if this file is opened without
+// the Node server. When Express is running, /js/iscest-config.js is
+// generated from .env (SUPABASE_URL + SUPABASE_ANON_KEY) instead.
 //
 // The SERVICE-ROLE key must never appear in this file, or anywhere else
 // under public/. It bypasses RLS and lives only in the server's .env.

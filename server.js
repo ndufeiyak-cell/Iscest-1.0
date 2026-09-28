@@ -27,6 +27,21 @@ app.use("/api/journals", journalRoutes);
 app.use("/api/conferences", conferenceRoutes);
 app.use("/api", (req, res) => res.status(404).json({ message: "Route not found" }));
 
+// Browser auth config comes from .env so the dashboard and member login
+// use the same project as the API. Served before static so this wins over
+// public/js/iscest-config.js. Only the publishable anon key is exposed.
+app.get("/js/iscest-config.js", (req, res) => {
+  const url = process.env.SUPABASE_URL || "";
+  const anon = process.env.SUPABASE_ANON_KEY || "";
+  res
+    .type("application/javascript")
+    .send(
+      `window.ISCEST_SUPABASE_URL = ${JSON.stringify(url)};\n` +
+        `window.ISCEST_SUPABASE_ANON_KEY = ${JSON.stringify(anon)};\n` +
+        `window.ISCEST_API_BASE = "/api";\n`
+    );
+});
+
 // The site itself. Served from public/ rather than the repo root so that
 // server.js, package.json, node_modules/ and supabase/migrations/ are not
 // published to the web.

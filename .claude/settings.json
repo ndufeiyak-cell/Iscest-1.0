@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(node --check src/controllers/userController.js)",
+      "Bash(node --check src/routes/users.js)",
+      "Bash(node --check src/lib/mappers.js)",
+      "Bash(sed -n '/iscestApi/,/^}/p' public/js/supabase-client.js)",
+      "Bash(rm -f ./tmp-test-status.js /tmp/test-status.js)",
+      "Bash(node)",
+      "Bash(curl -s -o /dev/null -w \"dashboard.html %{http_code}\\\\nbase.css %{http_code}\\\\n\" http://localhost:3000/dashboard.html)"
+    ]
+  }
+}

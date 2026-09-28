@@ -63,7 +63,9 @@ npm run dev               # http://localhost:3000
 
 Express serves the site and the API on the same port, so there's nothing else to start. `npm run seed` only creates the admin account — the journals and conference come from the migration above.
 
-**Change the seeded password before this is public.** Registration and login are otherwise fully self-service.
+**Change the seeded password before this is public** — sign in at `dashboard.html` and use the **Account** tab. The password is held by Supabase Auth, not by this repo, so the `ADMIN_PASSWORD` in `.env` is only the value the account starts with. Re-running `npm run seed` re-promotes the account but deliberately leaves its password alone; run `ADMIN_RESET_PASSWORD=true npm run seed` to put the `.env` password back if it's ever lost.
+
+Registration and login are otherwise fully self-service.
 
 ## 4. How authentication works
 
@@ -101,6 +103,7 @@ update public.profiles set role = 'admin' where email = 'someone@example.com';
 - **Overview** — member, journal, and conference counts
 - **Members** — read-only list of everyone who submitted the Registration Form
 - **Journals** / **Conferences** — full create, edit, and delete
+- **Account** — change your own password (asks for the current one first)
 
 ## 7. Deploying to Hostinger (Node.js app hosting)
 
