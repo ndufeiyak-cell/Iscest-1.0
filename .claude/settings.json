@@ -22,7 +22,17 @@
       "WebFetch(domain:vercel.com)",
       "Bash(node --check server.js)",
       "Bash(grep -vE \"^[-+]\\\\s*//\")",
-      "Bash(grep -vE \"^[-+]\\\\s*$\")"
+      "Bash(grep -vE \"^[-+]\\\\s*$\")",
+      "PowerShell(Get-NetTCPConnection -State Listen | Where-Object { $_.LocalPort -in 3000,3001,5000,5500,5501,8000,8080,5173,4000 } | Select-Object LocalAddress,LocalPort,OwningProcess | Sort-Object LocalPort | Format-Table -AutoSize; Write-Output \"--- process names ---\"; Get-Process -Id \\(Get-NetTCPConnection -State Listen | Where-Object { $_.LocalPort -in 3000,5500,5501,8000,8080,5173 } | Select-Object -ExpandProperty OwningProcess -Unique\\) -ErrorAction SilentlyContinue | Select-Object Id,ProcessName,Path | Format-Table -AutoSize)",
+      "Bash(cd e:/DESKTOP/Iscest && cat /tmp/iscest.log 2>/dev/null | tail -20; echo \"--- README run section ---\"; grep -n -i -A6 \"npm start\\\\|npm run dev\\\\|getting started\\\\|localhost\" README.md | head -60)",
+      "PowerShell($p = Get-CimInstance Win32_Process -Filter \"ProcessId=8496\" | Select-Object -ExpandProperty CommandLine; Write-Output \"PID 8496 cmdline: $p\"; Write-Output \"--- 5500 \\(Cursor/Live Server\\) responding? ---\"; try { $r = Invoke-WebRequest -Uri \"http://localhost:5500/api/users/me\" -UseBasicParsing -ErrorAction Stop; Write-Output \"status $\\($r.StatusCode\\) ctype $\\($r.Headers['Content-Type']\\)\" } catch { $resp = $_.Exception.Response; Write-Output \"status $\\([int]$resp.StatusCode\\) ctype $\\($resp.ContentType\\)\"; $sr = New-Object System.IO.StreamReader\\($resp.GetResponseStream\\(\\)\\); Write-Output \\($sr.ReadToEnd\\(\\).Substring\\(0,[Math]::Min\\(300,$sr.BaseStream.Length\\)\\)\\) })",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:5500/dashboard.html\" -UseBasicParsing -ErrorAction Stop; Write-Output \"dashboard.html on 5500 -> $\\($r.StatusCode\\), length $\\($r.Content.Length\\)\" } catch { Write-Output \"5500 dashboard.html error: $\\($_.Exception.Message\\)\" })",
+      "Bash(node render.js)",
+      "Bash(curl -s https://iscest-1-0.vercel.app/js/iscest-config.js)",
+      "Bash(curl -s http://localhost:3000/js/iscest-config.js)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\Trust Williams\\AppData\\Local\\Temp\\iscest-check"
     ]
   }
 }

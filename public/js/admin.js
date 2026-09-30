@@ -57,7 +57,9 @@ async function checkAuth() {
   // A failed lookup and a non-admin account both leave `profile` null/plain,
   // but they need different words: if this call is what's broken, silently
   // dropping back to the login form makes a successful sign-in look like it
-  // did nothing at all. So keep the reason and report it below.
+  // did nothing at all. So keep the reason and report it below — as a whole
+  // sentence, because the case below needs to say something the other two
+  // can't share.
   let profile = null;
   let lookupError = null;
   if (session) {
@@ -68,12 +70,35 @@ async function checkAuth() {
       } else {
         // A proxy or static host can answer with HTML, so don't assume JSON.
         const body = await res.json().catch(() => null);
-        lookupError = `the API replied ${res.status}${
-          body?.message ? ` (${body.message})` : ""
-        }`;
+        if (res.status === 404 && !body) {
+          // Our own API answers an unknown /api path as JSON, so a 404 we
+          // can't even parse never reached Express: there's no API behind
+          // this address at all. What that means depends on where the page
+          // is running, and the two cases need opposite advice — a local
+          // static preview is one command away from working, while a
+          // deployed host is missing its backend outright and telling
+          // whoever is looking at it to "run npm run dev" would be nonsense.
+          const isLocal = ["localhost", "127.0.0.1", "::1"].includes(location.hostname);
+          lookupError = isLocal
+            ? `You're signed in, but there's no API at ${location.origin} — that ` +
+              `address serves the pages only. Open the dashboard from the Node ` +
+              `server instead: run \`npm run dev\`, then go to ` +
+              `${location.protocol}//${location.hostname}:3000/dashboard.html.`
+            : `You're signed in, but there's no API at ${location.origin} — this ` +
+              `deployment serves the pages only, so your role can't be ` +
+              `confirmed. The dashboard needs the ISCEST server deployed on ` +
+              `this same address.`;
+        } else {
+          lookupError =
+            `You're signed in, but the API replied ${res.status}` +
+            `${body?.message ? ` (${body.message})` : ""} — the dashboard needs ` +
+            `that call to confirm your role.`;
+        }
       }
     } catch (err) {
-      lookupError = "the API couldn't be reached at all";
+      lookupError =
+        "You're signed in, but the API couldn't be reached at all — the " +
+        "dashboard needs that call to confirm your role.";
     }
   }
 
@@ -96,7 +121,11 @@ async function checkAuth() {
   const note = document.getElementById("dashLoginNote");
   if (session && !profile) {
     note.className = "text-sm min-h-[1.2em] text-clay";
-    note.textContent = `You're signed in, but ${lookupError} — the dashboard needs that call to confirm your role.`;
+    // lookupError is already a finished sentence — see where it's built. The
+    // fallback covers a 2xx whose body carried no profile at all, the one
+    // path that leaves the variable unset.
+    note.textContent =
+      lookupError || "You're signed in, but no profile came back to confirm your role.";
   } else if (session && profile.role !== "admin") {
     note.className = "text-sm min-h-[1.2em] text-clay";
     note.textContent = `${profile.name || "This account"} doesn't have admin access.`;
