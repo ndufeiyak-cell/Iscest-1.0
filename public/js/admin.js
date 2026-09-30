@@ -53,13 +53,27 @@ async function checkAuth() {
 
   // The role isn't in the session — it lives in the profiles table, so ask
   // the API for it.
+  //
+  // A failed lookup and a non-admin account both leave `profile` null/plain,
+  // but they need different words: if this call is what's broken, silently
+  // dropping back to the login form makes a successful sign-in look like it
+  // did nothing at all. So keep the reason and report it below.
   let profile = null;
+  let lookupError = null;
   if (session) {
     try {
       const res = await window.iscestApi("/users/me");
-      if (res.ok) profile = await res.json();
+      if (res.ok) {
+        profile = await res.json();
+      } else {
+        // A proxy or static host can answer with HTML, so don't assume JSON.
+        const body = await res.json().catch(() => null);
+        lookupError = `the API replied ${res.status}${
+          body?.message ? ` (${body.message})` : ""
+        }`;
+      }
     } catch (err) {
-      /* network hiccup — treated as "not signed in" below */
+      lookupError = "the API couldn't be reached at all";
     }
   }
 
@@ -68,6 +82,7 @@ async function checkAuth() {
     loginGate.classList.add("hidden");
     dashApp.classList.remove("hidden");
     document.getElementById("dashUserName").textContent = profile.name || "Admin";
+    document.getElementById("accountEmail").textContent = profile.email || "—";
     loadOverview();
     return true;
   }
@@ -79,7 +94,10 @@ async function checkAuth() {
   // A non-admin who is signed in gets told why, rather than being shown a
   // login form they'd only fail against.
   const note = document.getElementById("dashLoginNote");
-  if (session && profile && profile.role !== "admin") {
+  if (session && !profile) {
+    note.className = "text-sm min-h-[1.2em] text-clay";
+    note.textContent = `You're signed in, but ${lookupError} — the dashboard needs that call to confirm your role.`;
+  } else if (session && profile.role !== "admin") {
     note.className = "text-sm min-h-[1.2em] text-clay";
     note.textContent = `${profile.name || "This account"} doesn't have admin access.`;
   } else if (note) {
@@ -162,38 +180,189 @@ async function loadOverview() {
 }
 
 /* ---------- Members ---------- */
-async function loadMembers() {
-  const body = document.getElementById("membersBody");
+// A profile row carries fourteen fields, which is more than fits across a
+// readable table. So the columns group them: the four that describe who
+// someone is and where they are get stacked inside a cell, the rest live in
+// a details row that opens on demand. Every field stays reachable — nothing
+// is dropped, it's just ranked.
+const membersBody = document.getElementById("membersBody");
+const memberSearch = document.getElementById("memberSearch");
+let members = [];
+
+// Tier values arrive as "Full Membership — ₦10,000", so the fee is split off
+// as a sub-line instead of stretching the column.
+function tierParts(tier) {
+  const [name, ...rest] = String(tier ?? "").split(" — ");
+  return { name: name.trim(), note: rest.join(" — ").trim() };
+}
+
+// Mirrors the check constraint on profiles.membership_status (see
+// src/lib/mappers.js). "active" is what an admin picks once a member's
+// payment has come through.
+const MEMBERSHIP_STATUSES = ["pending", "active", "expired"];
+
+// The status a row shows for a member. Constrained to three values, so
+// anything else can only mean the row was edited outside the API: an
+// unrecognised value is surfaced as-is, while a null/absent one falls back to
+// "pending". Shared by the render and by the rollback after a failed save, so
+// the two can't disagree about what the control should be showing.
+function shownStatus(u) {
+  if (MEMBERSHIP_STATUSES.includes(u.membershipStatus)) return u.membershipStatus;
+  return u.membershipStatus || "pending";
+}
+
+function memberRow(u) {
+  const tier = tierParts(u.tier);
+  const location = [u.city, u.state].filter(Boolean).join(", ");
+  const isAdmin = u.role === "admin";
+  const id = escapeHtml(u.id);
+
+  // An unrecognised status gets its own disabled option so it's visible but
+  // can't be re-selected; the three valid ones are always offered.
+  const status = shownStatus(u);
+  const unrecognised = MEMBERSHIP_STATUSES.includes(status) ? null : status;
+  const statuses = unrecognised ? [unrecognised, ...MEMBERSHIP_STATUSES] : MEMBERSHIP_STATUSES;
+  const owner = escapeHtml(u.name) || "this member";
+
+  // Only the fields with no column of their own — and only the ones filled in.
+  const details = [
+    ["Sex", u.sex],
+    ["Phone", u.telephone],
+    ["Specialization", u.specialization],
+  ].filter(([, v]) => v);
+
+  return `
+    <tr>
+      <td data-label="Member">
+        <span class="font-semibold">${escapeHtml([u.title, u.name].filter(Boolean).join(" ")) || "—"}</span>
+        <span class="pill ${isAdmin ? "pill-admin" : "pill-member"}">${isAdmin ? "Admin" : "Member"}</span>
+        <span class="cell-sub">${escapeHtml(u.email)}</span>
+      </td>
+      <td data-label="Institution">
+        ${escapeHtml(u.affiliation) || "—"}
+        ${u.department ? `<span class="cell-sub">${escapeHtml(u.department)}</span>` : ""}
+      </td>
+      <td data-label="Location">
+        ${escapeHtml(u.country) || "—"}
+        ${location ? `<span class="cell-sub">${escapeHtml(location)}</span>` : ""}
+      </td>
+      <td data-label="Tier">
+        ${escapeHtml(tier.name) || "—"}
+        ${tier.note ? `<span class="cell-sub">${escapeHtml(tier.note)}</span>` : ""}
+      </td>
+      <td data-label="Status">
+        <select class="status-select is-${status}" data-action="status" data-id="${id}"
+                aria-label="Membership status for ${owner}">
+          ${statuses.map((s) => `<option value="${escapeHtml(s)}"${s === status ? " selected" : ""}${s === unrecognised ? " disabled" : ""}>${escapeHtml(s)}</option>`).join("")}
+        </select>
+      </td>
+      <td data-label="Joined" class="cell-nowrap text-inksoft">${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}</td>
+      <td class="text-right">
+        ${details.length ? `<button class="row-action row-action-quiet" data-action="details" data-id="${id}" aria-expanded="false">Details</button>` : ""}
+      </td>
+    </tr>
+    ${details.length ? `
+      <tr class="detail-row hidden" data-detail-for="${id}">
+        <td colspan="7">
+          <dl class="detail-grid">
+            ${details.map(([label, value]) => `
+              <div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>
+            `).join("")}
+          </dl>
+        </td>
+      </tr>
+    ` : ""}
+  `;
+}
+
+function renderMembers() {
+  const term = memberSearch.value.trim().toLowerCase();
+  const matched = term
+    ? members.filter((u) =>
+        [u.name, u.email, u.affiliation, u.country, u.city, u.state, u.tier, u.specialization]
+          .some((field) => String(field ?? "").toLowerCase().includes(term))
+      )
+    : members;
+
+  // Admins are pinned above everyone else: they're the accounts that can
+  // change things, so they shouldn't be buried among the members. sort() is
+  // stable, so the API's newest-first order survives inside each group.
+  const shown = [...matched].sort((a, b) => (b.role === "admin") - (a.role === "admin"));
+
+  document.getElementById("memberCount").textContent = term
+    ? `${shown.length} of ${members.length} members`
+    : `${members.length} member${members.length === 1 ? "" : "s"}`;
+
   const empty = document.getElementById("membersEmpty");
+  empty.classList.toggle("hidden", shown.length !== 0);
+  empty.textContent = members.length === 0 ? "No members yet." : "No members match that search.";
+
+  membersBody.innerHTML = shown.map(memberRow).join("");
+}
+
+async function loadMembers() {
   try {
     const res = await apiFetch("/users");
     const users = await res.json();
     if (!res.ok) throw new Error(users.message || "Couldn't load members");
 
-    empty.classList.toggle("hidden", users.length !== 0);
-    body.innerHTML = users.map((u) => `
-      <tr class="border-b border-line">
-        <td class="p-3 text-inksoft">${escapeHtml(u.title) || "—"}</td>
-        <td class="p-3">${escapeHtml(u.name)}</td>
-        <td class="p-3 text-inksoft">${escapeHtml(u.sex) || "—"}</td>
-        <td class="p-3">${escapeHtml(u.email)}</td>
-        <td class="p-3">${escapeHtml(u.affiliation) || "—"}</td>
-        <td class="p-3">${escapeHtml(u.department) || "—"}</td>
-        <td class="p-3">${escapeHtml(u.city) || "—"}</td>
-        <td class="p-3">${escapeHtml(u.state) || "—"}</td>
-        <td class="p-3">${escapeHtml(u.country) || "—"}</td>
-        <td class="p-3">${escapeHtml(u.telephone) || "—"}</td>
-        <td class="p-3">${escapeHtml(u.specialization) || "—"}</td>
-        <td class="p-3">${escapeHtml(u.tier)}</td>
-        <td class="p-3"><span class="text-xs font-semibold px-2 py-1 rounded-full border ${u.membershipStatus === "active" ? "border-teal text-teal" : "border-line text-inksoft"}">${escapeHtml(u.membershipStatus)}</span></td>
-        <td class="p-3 text-inksoft whitespace-nowrap">${new Date(u.createdAt).toLocaleDateString()}</td>
-      </tr>
-    `).join("");
+    members = Array.isArray(users) ? users : [];
+    renderMembers();
   } catch (err) {
     showError(err.message);
   }
 }
+
 document.getElementById("refreshMembers")?.addEventListener("click", loadMembers);
+memberSearch?.addEventListener("input", renderMembers);
+
+membersBody.addEventListener("click", (e) => {
+  const btn = e.target.closest('button[data-action="details"]');
+  if (!btn) return;
+  const row = membersBody.querySelector(`[data-detail-for="${CSS.escape(btn.dataset.id)}"]`);
+  if (!row) return;
+  const open = row.classList.toggle("hidden");
+  btn.setAttribute("aria-expanded", String(!open));
+  btn.textContent = open ? "Details" : "Hide";
+});
+
+// Confirming a payment is a deliberate action, so the select only sends once
+// it settles: it's disabled for the round-trip, and a failure puts it back to
+// the stored value rather than leaving the row showing a status that was
+// never saved.
+membersBody.addEventListener("change", async (e) => {
+  const select = e.target.closest('select[data-action="status"]');
+  if (!select) return;
+
+  const id = select.dataset.id;
+  const next = select.value;
+  const member = members.find((m) => m.id === id);
+
+  select.disabled = true;
+  try {
+    const res = await apiFetch(`/users/${encodeURIComponent(id)}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ membershipStatus: next }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Couldn't update the membership status");
+
+    // Keep the local copy in step so a re-render (a search, say) keeps the
+    // new value instead of snapping back to what the last fetch returned.
+    if (member) member.membershipStatus = data.membershipStatus ?? next;
+    select.className = `status-select is-${next}`;
+    clearError();
+  } catch (err) {
+    showError(err.message);
+    // Back to what the row was showing before, so the control never displays
+    // a status that failed to save.
+    const previous = member ? shownStatus(member) : "pending";
+    select.value = previous;
+    select.className = `status-select is-${previous}`;
+  } finally {
+    select.disabled = false;
+  }
+});
 
 /* ---------- Journals ---------- */
 const journalForm = document.getElementById("journalForm");
@@ -206,15 +375,19 @@ async function loadJournals() {
     if (!res.ok) throw new Error(journals.message || "Couldn't load journals");
 
     journalsById = Object.fromEntries(journals.map((j) => [j.id, j]));
+    document.getElementById("journalsEmpty").classList.toggle("hidden", journals.length !== 0);
     document.getElementById("journalsBody").innerHTML = journals.map((j) => `
-      <tr class="border-b border-line">
-        <td class="p-3 font-semibold">${escapeHtml(j.code)}</td>
-        <td class="p-3">${escapeHtml(j.title)}</td>
-        <td class="p-3 capitalize">${escapeHtml(j.frequency)}</td>
-        <td class="p-3 text-inksoft">${escapeHtml(j.issn) || "—"}</td>
-        <td class="p-3 text-right whitespace-nowrap">
-          <button class="text-teal hover:underline mr-3" data-action="edit" data-id="${escapeHtml(j.id)}">Edit</button>
-          <button class="text-clay hover:underline" data-action="delete" data-id="${escapeHtml(j.id)}">Delete</button>
+      <tr>
+        <td data-label="Code" class="font-semibold cell-nowrap">${escapeHtml(j.code)}</td>
+        <td data-label="Title">
+          ${escapeHtml(j.title)}
+          ${j.openAccess ? `<span class="cell-sub">Open access</span>` : ""}
+        </td>
+        <td data-label="Frequency" class="capitalize cell-nowrap">${escapeHtml(j.frequency)}</td>
+        <td data-label="ISSN" class="text-inksoft cell-nowrap">${escapeHtml(j.issn) || "—"}</td>
+        <td class="text-right cell-nowrap">
+          <button class="row-action mr-3" data-action="edit" data-id="${escapeHtml(j.id)}">Edit</button>
+          <button class="row-action row-action-danger" data-action="delete" data-id="${escapeHtml(j.id)}">Delete</button>
         </td>
       </tr>
     `).join("");
@@ -300,15 +473,16 @@ async function loadConferences() {
     if (!res.ok) throw new Error(conferences.message || "Couldn't load conferences");
 
     conferencesById = Object.fromEntries(conferences.map((c) => [c.id, c]));
+    document.getElementById("conferencesEmpty").classList.toggle("hidden", conferences.length !== 0);
     document.getElementById("conferencesBody").innerHTML = conferences.map((c) => `
-      <tr class="border-b border-line">
-        <td class="p-3 font-semibold">${escapeHtml(c.title)}</td>
-        <td class="p-3 text-inksoft">${new Date(c.startDate).toLocaleDateString()} – ${new Date(c.endDate).toLocaleDateString()}</td>
-        <td class="p-3">${escapeHtml(c.location)}</td>
-        <td class="p-3">${c.registrationOpen ? "Yes" : "No"}</td>
-        <td class="p-3 text-right whitespace-nowrap">
-          <button class="text-teal hover:underline mr-3" data-action="edit" data-id="${escapeHtml(c.id)}">Edit</button>
-          <button class="text-clay hover:underline" data-action="delete" data-id="${escapeHtml(c.id)}">Delete</button>
+      <tr>
+        <td data-label="Title" class="font-semibold">${escapeHtml(c.title)}</td>
+        <td data-label="Dates" class="text-inksoft cell-nowrap">${new Date(c.startDate).toLocaleDateString()} – ${new Date(c.endDate).toLocaleDateString()}</td>
+        <td data-label="Location">${escapeHtml(c.location)}</td>
+        <td data-label="Reg. open"><span class="pill ${c.registrationOpen ? "pill-on" : "pill-off"}">${c.registrationOpen ? "Open" : "Closed"}</span></td>
+        <td class="text-right cell-nowrap">
+          <button class="row-action mr-3" data-action="edit" data-id="${escapeHtml(c.id)}">Edit</button>
+          <button class="row-action row-action-danger" data-action="delete" data-id="${escapeHtml(c.id)}">Delete</button>
         </td>
       </tr>
     `).join("");
@@ -390,6 +564,58 @@ conferenceForm.addEventListener("submit", async (e) => {
   } catch (err) {
     showError(err.message);
   }
+});
+
+/* ---------- Account ---------- */
+// Changing a password is a Supabase Auth operation, so it goes straight from
+// this page to Supabase with supabase-js — it never touches our API. That's
+// the same rule the rest of the site follows: credentials are the browser's
+// business, and the Express server only ever sees access tokens.
+const passwordForm = document.getElementById("passwordForm");
+const passwordNote = document.getElementById("passwordNote");
+
+function setPasswordNote(text, tone) {
+  passwordNote.className = `text-sm min-h-[1.2em] ${tone}`;
+  passwordNote.textContent = text;
+}
+
+passwordForm?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const current = document.getElementById("currentPassword").value;
+  const next = document.getElementById("newPassword").value;
+  const confirm = document.getElementById("confirmPassword").value;
+
+  if (next.length < 8) return setPasswordNote("Your new password must be at least 8 characters.", "text-clay");
+  if (next !== confirm) return setPasswordNote("Those new passwords don't match.", "text-clay");
+  if (next === current) return setPasswordNote("Your new password must be different from the current one.", "text-clay");
+
+  const email = currentProfile?.email;
+  if (!email) return setPasswordNote("Couldn't read your account email — please sign in again.", "text-clay");
+
+  setPasswordNote("Updating…", "text-inksoft");
+
+  // Sign in again with the current password first. That proves whoever is at
+  // the keyboard actually knows it, rather than just having found an unlocked
+  // session — and it gives us a fresh session, which Supabase requires before
+  // it will accept a password change on a session more than 24 hours old.
+  const { error: reauthError } = await window.iscestSupabase.auth.signInWithPassword({
+    email,
+    password: current,
+  });
+
+  if (reauthError) {
+    // Deliberately no signOut()/checkAuth() here, unlike apiFetch above: a
+    // failed sign-in leaves the existing session intact, so a typo should
+    // just report itself and let them retry, not throw them out.
+    return setPasswordNote("Your current password is incorrect.", "text-clay");
+  }
+
+  const { error } = await window.iscestSupabase.auth.updateUser({ password: next });
+  if (error) return setPasswordNote(error.message, "text-clay");
+
+  passwordForm.reset();
+  setPasswordNote("Password updated — use the new one next time you sign in.", "text-teal");
 });
 
 /* ---------- Init ---------- */

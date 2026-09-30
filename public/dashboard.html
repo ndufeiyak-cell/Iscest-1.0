@@ -48,7 +48,7 @@
         <button type="submit" class="w-full bg-ink text-white rounded py-2.5 text-sm font-semibold hover:bg-teal transition-colors">Sign in</button>
         <p id="dashLoginNote" class="text-sm min-h-[1.2em]"></p>
       </form>
-      <p class="text-xs text-inksoft mt-5">Seeded admin: <code class="bg-paper px-1 py-0.5 rounded">admin@iscest.org</code> / <code class="bg-paper px-1 py-0.5 rounded">changeme123</code> — change this after first login.</p>
+      <p class="text-xs text-inksoft mt-5">Once you're signed in, you can change your password under <strong>Account</strong>.</p>
     </div>
     <p class="text-center text-sm text-inksoft mt-5"><a href="index.html" class="hover:text-teal">← Back to the site</a></p>
   </div>
@@ -58,41 +58,51 @@
 <div id="dashApp" class="hidden">
 
   <header class="bg-white border-b border-line sticky top-0 z-40">
-    <div class="max-w-6xl mx-auto px-6 flex items-center gap-4 py-4">
-      <a href="index.html" class="w-40 shrink-0"><img src="assets/logo.svg" alt="ISCEST" class="w-full h-auto"></a>
-      <div class="ml-2">
-        <p class="text-sm font-semibold leading-tight">Admin dashboard</p>
-        <p class="text-xs text-inksoft leading-tight">Signed in as <span id="dashUserName">—</span></p>
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 flex items-center gap-3 sm:gap-4 py-3 sm:py-4">
+      <a href="index.html" class="w-28 sm:w-40 shrink-0"><img src="assets/logo.svg" alt="ISCEST" class="w-full h-auto"></a>
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-semibold leading-tight truncate">Admin dashboard</p>
+        <!-- Who you're signed in as doesn't fit beside the logo on a phone;
+             the Account tab is the place to check it there. -->
+        <p class="hidden sm:block text-xs text-inksoft leading-tight truncate">Signed in as <span id="dashUserName">—</span> · <span id="accountEmail">—</span></p>
       </div>
-      <div class="ml-auto flex items-center gap-2">
-        <a href="index.html" class="text-sm text-inksoft hover:text-teal px-3 py-2">View site</a>
-        <button id="logoutBtn" class="text-sm border border-line rounded px-3 py-2 hover:bg-paper transition-colors">Log out</button>
+      <div class="flex items-center gap-1 sm:gap-2 shrink-0">
+        <a href="index.html" class="hidden sm:inline-block text-sm text-inksoft hover:text-teal px-3 py-2">View site</a>
+        <button id="logoutBtn" class="text-sm border border-line rounded px-3 py-3 sm:py-2 hover:bg-paper transition-colors">Log out</button>
       </div>
     </div>
     <nav class="border-t border-line">
-      <div class="max-w-6xl mx-auto px-6">
-        <ul class="flex gap-1" id="dashTabs">
-          <li><button data-tab="overview" class="tab-btn px-4 py-3 text-sm font-medium">Overview</button></li>
-          <li><button data-tab="members" class="tab-btn px-4 py-3 text-sm font-medium">Members</button></li>
-          <li><button data-tab="journals" class="tab-btn px-4 py-3 text-sm font-medium">Journals</button></li>
-          <li><button data-tab="conferences" class="tab-btn px-4 py-3 text-sm font-medium">Conferences</button></li>
+      <div class="max-w-6xl mx-auto px-4 sm:px-6">
+        <!-- Five tabs don't fit across a phone, so the bar scrolls sideways
+             instead of wrapping or squashing. Tabs keep their own min-width
+             via shrink-0 rather than compressing the labels. -->
+        <ul class="flex gap-1 overflow-x-auto" id="dashTabs">
+          <li class="shrink-0"><button data-tab="overview" class="tab-btn px-3 sm:px-4 py-3 text-sm font-medium whitespace-nowrap">Overview</button></li>
+          <li class="shrink-0"><button data-tab="members" class="tab-btn px-3 sm:px-4 py-3 text-sm font-medium whitespace-nowrap">Members</button></li>
+          <li class="shrink-0"><button data-tab="journals" class="tab-btn px-3 sm:px-4 py-3 text-sm font-medium whitespace-nowrap">Journals</button></li>
+          <li class="shrink-0"><button data-tab="conferences" class="tab-btn px-3 sm:px-4 py-3 text-sm font-medium whitespace-nowrap">Conferences</button></li>
+          <li class="shrink-0"><button data-tab="account" class="tab-btn px-3 sm:px-4 py-3 text-sm font-medium whitespace-nowrap">Account</button></li>
         </ul>
       </div>
     </nav>
   </header>
 
-  <main class="max-w-6xl mx-auto px-6 py-10">
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
 
     <p id="dashError" class="hidden mb-6 text-sm text-clay bg-white border border-clay rounded px-4 py-3"></p>
 
     <!-- OVERVIEW -->
     <section data-panel="overview">
       <h2 class="text-2xl mb-6">Overview</h2>
-      <div class="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-line border border-line">
-        <div class="p-6"><strong id="statMembers" class="block text-2xl">—</strong><span class="text-inksoft text-sm">Registered members</span></div>
-        <div class="p-6"><strong id="statActive" class="block text-2xl">—</strong><span class="text-inksoft text-sm">Active memberships</span></div>
-        <div class="p-6"><strong id="statJournals" class="block text-2xl">—</strong><span class="text-inksoft text-sm">Journals</span></div>
-        <div class="p-6"><strong id="statConferences" class="block text-2xl">—</strong><span class="text-inksoft text-sm">Conferences</span></div>
+      <!-- The 1px rules between tiles are the container showing through a
+           gap-px grid. divide-x/divide-y can't do this: they put a border on
+           every child but the first, which leaves a stray edge at the start
+           of each wrapped row once this is two columns wide. -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-line border border-line">
+        <div class="bg-paper p-4 sm:p-6"><strong id="statMembers" class="block text-2xl">—</strong><span class="text-inksoft text-sm">Registered members</span></div>
+        <div class="bg-paper p-4 sm:p-6"><strong id="statActive" class="block text-2xl">—</strong><span class="text-inksoft text-sm">Active memberships</span></div>
+        <div class="bg-paper p-4 sm:p-6"><strong id="statJournals" class="block text-2xl">—</strong><span class="text-inksoft text-sm">Journals</span></div>
+        <div class="bg-paper p-4 sm:p-6"><strong id="statConferences" class="block text-2xl">—</strong><span class="text-inksoft text-sm">Conferences</span></div>
       </div>
     </section>
 
@@ -100,19 +110,27 @@
     <section data-panel="members" class="hidden">
       <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
         <h2 class="text-2xl">Members</h2>
-        <button id="refreshMembers" class="text-sm border border-line rounded px-3 py-2 hover:bg-white transition-colors">Refresh</button>
+        <button id="refreshMembers" class="text-sm border border-line rounded px-3 py-3 sm:py-2 hover:bg-white transition-colors">Refresh</button>
       </div>
-      <div class="overflow-x-auto bg-white border border-line rounded">
-        <table class="w-full text-sm border-collapse">
+
+      <div class="flex items-center gap-3 mb-4 flex-wrap">
+        <label for="memberSearch" class="sr-only">Search members</label>
+        <input id="memberSearch" type="search" placeholder="Search name, email, institution or country…"
+               class="flex-1 min-w-0 sm:min-w-[16rem] bg-white border border-line rounded px-3 py-2 text-sm focus:outline focus:outline-2 focus:outline-gold">
+        <p id="memberCount" class="text-sm text-inksoft whitespace-nowrap"></p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="data-table">
           <thead>
-            <tr class="border-b border-line text-inksoft text-left">
-              <th class="p-3 font-semibold">Name</th>
-              <th class="p-3 font-semibold">Email</th>
-              <th class="p-3 font-semibold">Institution</th>
-              <th class="p-3 font-semibold">Country</th>
-              <th class="p-3 font-semibold">Tier</th>
-              <th class="p-3 font-semibold">Status</th>
-              <th class="p-3 font-semibold">Joined</th>
+            <tr>
+              <th>Member</th>
+              <th>Institution</th>
+              <th>Location</th>
+              <th>Tier</th>
+              <th>Status</th>
+              <th>Joined</th>
+              <th><span class="sr-only">Details</span></th>
             </tr>
           </thead>
           <tbody id="membersBody"></tbody>
@@ -125,7 +143,7 @@
     <section data-panel="journals" class="hidden">
       <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
         <h2 class="text-2xl">Journals</h2>
-        <button id="newJournalBtn" class="bg-ink text-white text-sm rounded px-4 py-2.5 font-semibold hover:bg-teal transition-colors">+ New journal</button>
+        <button id="newJournalBtn" class="bg-ink text-white text-sm rounded px-4 py-3 sm:py-2.5 font-semibold hover:bg-teal transition-colors">+ New journal</button>
       </div>
 
       <form id="journalForm" class="hidden bg-white border border-line rounded p-6 mb-6 space-y-4">
@@ -153,17 +171,18 @@
         </div>
       </form>
 
-      <div class="overflow-x-auto bg-white border border-line rounded">
-        <table class="w-full text-sm border-collapse">
+      <div class="table-scroll">
+        <table class="data-table">
           <thead>
-            <tr class="border-b border-line text-inksoft text-left">
-              <th class="p-3 font-semibold">Code</th><th class="p-3 font-semibold">Title</th>
-              <th class="p-3 font-semibold">Frequency</th><th class="p-3 font-semibold">ISSN</th>
-              <th class="p-3 font-semibold"></th>
+            <tr>
+              <th>Code</th><th>Title</th>
+              <th>Frequency</th><th>ISSN</th>
+              <th class="text-right">Actions</th>
             </tr>
           </thead>
           <tbody id="journalsBody"></tbody>
         </table>
+        <p id="journalsEmpty" class="hidden p-6 text-center text-inksoft text-sm">No journals yet — add one to get started.</p>
       </div>
     </section>
 
@@ -171,7 +190,7 @@
     <section data-panel="conferences" class="hidden">
       <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
         <h2 class="text-2xl">Conferences</h2>
-        <button id="newConferenceBtn" class="bg-ink text-white text-sm rounded px-4 py-2.5 font-semibold hover:bg-teal transition-colors">+ New conference</button>
+        <button id="newConferenceBtn" class="bg-ink text-white text-sm rounded px-4 py-3 sm:py-2.5 font-semibold hover:bg-teal transition-colors">+ New conference</button>
       </div>
 
       <form id="conferenceForm" class="hidden bg-white border border-line rounded p-6 mb-6 space-y-4">
@@ -194,18 +213,46 @@
         </div>
       </form>
 
-      <div class="overflow-x-auto bg-white border border-line rounded">
-        <table class="w-full text-sm border-collapse">
+      <div class="table-scroll">
+        <table class="data-table">
           <thead>
-            <tr class="border-b border-line text-inksoft text-left">
-              <th class="p-3 font-semibold">Title</th><th class="p-3 font-semibold">Dates</th>
-              <th class="p-3 font-semibold">Location</th><th class="p-3 font-semibold">Reg. open</th>
-              <th class="p-3 font-semibold"></th>
+            <tr>
+              <th>Title</th><th>Dates</th>
+              <th>Location</th><th>Reg. open</th>
+              <th class="text-right">Actions</th>
             </tr>
           </thead>
           <tbody id="conferencesBody"></tbody>
         </table>
+        <p id="conferencesEmpty" class="hidden p-6 text-center text-inksoft text-sm">No conferences yet — add one to get started.</p>
       </div>
+    </section>
+
+    <!-- ACCOUNT -->
+    <section data-panel="account" class="hidden">
+      <h2 class="text-2xl mb-6">Account</h2>
+
+      <form id="passwordForm" class="bg-white border border-line rounded p-6 space-y-4 max-w-xl">
+        <div>
+          <h3 class="text-base font-semibold">Change password</h3>
+          <p class="text-inksoft text-sm mt-1">You'll stay signed in on this device.</p>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label for="currentPassword" class="text-sm font-semibold">Current password</label>
+          <input type="password" id="currentPassword" required autocomplete="current-password" class="border border-line rounded px-3 py-2 text-sm">
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label for="newPassword" class="text-sm font-semibold">New password</label>
+          <input type="password" id="newPassword" required minlength="8" autocomplete="new-password" class="border border-line rounded px-3 py-2 text-sm">
+          <span class="text-xs text-inksoft">At least 8 characters.</span>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label for="confirmPassword" class="text-sm font-semibold">Confirm new password</label>
+          <input type="password" id="confirmPassword" required minlength="8" autocomplete="new-password" class="border border-line rounded px-3 py-2 text-sm">
+        </div>
+        <button type="submit" class="bg-ink text-white text-sm rounded px-4 py-2.5 font-semibold hover:bg-teal transition-colors">Update password</button>
+        <p id="passwordNote" class="text-sm min-h-[1.2em]"></p>
+      </form>
     </section>
 
   </main>

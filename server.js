@@ -27,6 +27,21 @@ app.use("/api/journals", journalRoutes);
 app.use("/api/conferences", conferenceRoutes);
 app.use("/api", (req, res) => res.status(404).json({ message: "Route not found" }));
 
+// Browser auth config comes from .env so the dashboard and member login
+// use the same project as the API. Served before static so this wins over
+// public/js/iscest-config.js. Only the publishable anon key is exposed.
+app.get("/js/iscest-config.js", (req, res) => {
+  const url = process.env.SUPABASE_URL || "";
+  const anon = process.env.SUPABASE_ANON_KEY || "";
+  res
+    .type("application/javascript")
+    .send(
+      `window.ISCEST_SUPABASE_URL = ${JSON.stringify(url)};\n` +
+        `window.ISCEST_SUPABASE_ANON_KEY = ${JSON.stringify(anon)};\n` +
+        `window.ISCEST_API_BASE = "/api";\n`
+    );
+});
+
 // The site itself. Served from public/ rather than the repo root so that
 // server.js, package.json, node_modules/ and supabase/migrations/ are not
 // published to the web.
@@ -41,6 +56,14 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 
+// Vercel finds a Node server by the listen() call made while this module
+// loads, and routes requests to it. That call is the only thing that makes
+// /api/* reachable in production: hide it behind a `require.main === module`
+// check and Vercel sees no server at all, publishes public/ as a static site
+// instead, and every API call 404s at the platform before reaching Express.
+//
+// The PORT below applies locally; Vercel uses its own internal port and does
+// not expose this one.
 app.listen(PORT, () => console.log(`ISCEST listening on http://localhost:${PORT}`));
 
 // Best-effort connectivity check, logged but never fatal — the static pages

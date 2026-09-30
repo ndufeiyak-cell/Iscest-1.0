@@ -19,6 +19,12 @@ const PROFILE_COLUMNS = [
   "updatedAt:updated_at",
 ].join(",");
 
+// Mirrors the check constraint on profiles.membership_status. Held here so
+// the API rejects a bad value with a readable 400 rather than letting it
+// reach Postgres, where a constraint violation surfaces as an opaque error.
+// "active" is what an admin sets once a member's payment has been confirmed.
+const MEMBERSHIP_STATUSES = ["pending", "active", "expired"];
+
 const JOURNAL_COLUMNS = [
   "id", "code", "title", "issn", "description", "frequency",
   "openAccess:open_access",
@@ -65,6 +71,7 @@ function conferencePayload(body) {
 }
 
 module.exports = {
+  MEMBERSHIP_STATUSES,
   PROFILE_COLUMNS,
   JOURNAL_COLUMNS,
   CONFERENCE_COLUMNS,
